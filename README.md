@@ -1,4 +1,5 @@
-# Fembot
+# DiscordBot
+
 Discordbot Source Code
 Hello! If you are reading this, you are interested in the sourcecode for my discordbot! 
 
