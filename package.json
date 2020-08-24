@@ -12,7 +12,9 @@
   "dependencies": {
     "discord.js": "^12.3.0",
     "express": "^4.17.1",
+    "genius-lyrics-api": "^3.0.3",
     "googleapis": "^59.0.0",
+    "node-fetch": "^2.6.0",
     "node-opus": "^0.3.3",
     "nodemon": "^2.0.4",
     "opusscript": "0.0.7",

@@ -61,7 +61,6 @@ client.on("message", async msg => {
       part: "id, snippet",
       q: arg
     });
-
     //this parses through the returned data to get the video 'id' which can then be placed at the end of the URL and work for the video player!
     var id = res.data.items[0].id.videoId;
     var url = `https://www.youtube.com/watch?v=${id}`;
@@ -69,29 +68,30 @@ client.on("message", async msg => {
 
     //Tests queue length, if 0 it'll begin the play process, if > 0 it will push song to queue and do nothing!
     if (queue.length >= 1) {
-      queue.push(url);
+      queue.push([url, title]);
       const queueMsg = new Discord.MessageEmbed()
         .setTitle("Added to Queue")
-        .setDescription(`[${title}](${url}) has been added to queue | Queue Length: ${queue.length}`)
+        .setDescription(
+          `[${title}](${
+            url
+          }) has been added to queue | Queue Length: ${queue.length}`
+        )
         .setColor(0x1857a9);
       msg.channel.send(queueMsg);
       return;
     } else {
-      queue.push(url);
-      playMusic(queue[0]);
+      queue.push([url, title]);
+      playMusic(queue[0][0]);
     }
     return;
   }
-
+  
   //this is a function I made to work as the music player, it is easier to coneptualize this way with the finishing event in the dispatcher, when finished, checks queue length, and plays or ends accordingly!
   function playMusic(song) {
     if (msg.member.voice.channel) {
       msg.member.voice.channel.join().then(connection => {
         const stream = ytdl(song, { format: "audioonly" });
-        const nowPlaying = new Discord.MessageEmbed()
-          .setTitle("Now Playing")
-          .setDescription(`Now playing: [${title}](${url}) | Queue length: ${queue.length}`)
-          .setColor(0x1857a9);
+        const nowPlaying = new Discord.MessageEmbed().setTitle("Now Playing").setDescription(`Now playing: [${queue[0][1]}](${queue[0][0]}) | Queue length: ${queue.length}`).setColor(0x1857a9);
         dispatcher = connection.play(stream);
         msg.channel.send(nowPlaying);
 
@@ -99,11 +99,19 @@ client.on("message", async msg => {
         dispatcher.on("finish", function() {
           queue.shift();
           if (queue.length >= 1) {
-            playMusic(queue[0]);
+            playMusic(queue[0][0]);
           } else if (queue.length === 0) {
-            dispatcher.destroy();
-            msg.member.voice.channel.leave();
-            return;
+            const endQueueMSG = new Discord.MessageEmbed().setTitle("End Of Queue").setDescription( "The queue has completed. Fembot will leave in 60 seconds. ~play [song] to keep going!").setColor(0x1857a9);
+            msg.channel.send(endQueueMSG);
+            setTimeout(function() {
+              if (queue.length === 0) {
+                dispatcher.destroy();
+                msg.member.voice.channel.leave();
+                return;
+              } else {
+                return;
+              }
+            }, 60000);
           }
         });
       });
@@ -117,13 +125,50 @@ client.on("message", async msg => {
     dispatcher.pause();
     return;
   }
+  //skips current playing song and goes on to next (bugged rn)
+  if (msg.content.startsWith(pref) && command === "skip") {
+    queue.shift();
+    if (queue.length > 1) {
+      playMusic(queue[0][0]);
+      return;
+    } else {
+      dispatcher.destroy();
+      const skipQueueMSG = new Discord.MessageEmbed().setTitle("End Of Queue").setDescription( "The queue has completed. Fembot will leave in 60 seconds. ~play [song] to keep going!").setColor(0x1857a9);
+      msg.channel.send(skipQueueMSG);
+      setTimeout(function() {
+        if (queue.length === 0) {
+          msg.member.voice.channel.leave();
+          return;
+        } else {
+          return;
+        }
+      }, 60000);
+      return;
+    }
+  }
+  //clears entire queue
+  if(msg.content.startsWith(pref) && command === "clearqueue") {
+    queue = [];
+    dispatcher.destroy();
+    return;
+  }
+  //puts a song next in queue (still figuring this out)
+  if(msg.content.startsWith(pref) && command === "playnext") {
+    return;
+  }
+  //makes the bot leave
+  if(msg.content.startsWith(pref) && command === "disconnect") {
+    dispatcher.destroy();
+    msg.member.voice.channel.leave();
+    return;
+  }
 
   //tests to see if a command is in the collection of included files from the top
   if (!client.commands.has(command)) {
     msg.reply("That command does not exist!");
     return;
   }
-  
+
   //trys the command, if working, executes, else it returns an error!
   try {
     client.commands.get(command).execute(msg, arg);
@@ -137,3 +182,14 @@ client.login(discordkey);
 
 //sources or websites that helped me out :)
 //https://discordjs.guide <--- This guide was very helpful in making some of the basic youtube player functionalities, as well as code files separate from the bot.js file.
+//https://github.com/googleapis/google-api-nodejs-client/tree/master/samples/youtube <--- was used to help figure out how to call a search in the youtube data api
+//https://discord.js.org/#/docs/main/stable/general/welcome <==== used for understanding the discord api, as this is their official webpage
+//other random references pages: 
+//https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+
+
+//api's used: 
+//Youtube Data v3
+//dictionary api
+//https://www.npmjs.com/package/genius-lyrics-api
+//https://docs.genius.com/
