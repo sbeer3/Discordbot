@@ -12,6 +12,8 @@ const { google } = require("googleapis");
 const ytdl = require("ytdl-core");
 const Discord = require("discord.js");
 const MessageEmbed = require("discord.js");
+const mp = require("./commands/musicPlayer.js");
+
 
 //connecting to the Youtube Data API
 const youtubeData = google.youtube({
@@ -28,8 +30,8 @@ const client = new Discord.Client();
 client.commands = new Discord.Collection();
 
 for (const file of commandFiles) {
-  const command = require(`./commands/${file}`);
-  client.commands.set(command.name, command);
+  const comFile = require(`./commands/${file}`);
+  client.commands.set(comFile.command, comFile);
 }
 
 //When the bot is connected it will run this code
@@ -42,8 +44,15 @@ client.on("message", async msg => {
   //If it is not a command msg, it will run it through the blacklist command and strike down if it is in the server blacklist.txt
   if (!msg.content.startsWith(pref) || msg.author.bot) {
     if (msg && bl.blacklist(msg.content) === true) {
+      msg.author.send('Kinda cringe that you did that :(');
       msg.delete();
     }
+    return;
+  }
+  
+  if(msg.member.roles.cache.find(r => r.name === "Timeout")) {
+    msg.author.send('You are in timeout.. repent for your sins');
+    msg.delete();
     return;
   }
 
@@ -54,18 +63,24 @@ client.on("message", async msg => {
     if (arg === undefined) {
       dispatcher.resume();
       return;
+    } else if(!msg.member.voice.channel) {
+      msg.reply('You must be in a voice channel to queue up music!');
+      return;
     }
 
     //this calls you youtube data api search / list function to search based on the provided parameters!
     const res = await youtubeData.search.list({
-      part: "id, snippet",
+      part: "snippet",
       q: arg
     });
+    
     //this parses through the returned data to get the video 'id' which can then be placed at the end of the URL and work for the video player!
     var id = res.data.items[0].id.videoId;
     var url = `https://www.youtube.com/watch?v=${id}`;
     var title = res.data.items[0].snippet.title;
 
+    //console.log(id, title);
+    
     //Tests queue length, if 0 it'll begin the play process, if > 0 it will push song to queue and do nothing!
     if (queue.length >= 1) {
       queue.push([url, title]);
@@ -81,75 +96,19 @@ client.on("message", async msg => {
       return;
     } else {
       queue.push([url, title]);
-      playMusic(queue[0][0]);
+      mp.playMusic(queue, msg);
     }
     return;
   }
-  
-  //this is a function I made to work as the music player, it is easier to coneptualize this way with the finishing event in the dispatcher, when finished, checks queue length, and plays or ends accordingly!
-  function playMusic(song) {
-    if (msg.member.voice.channel) {
-      msg.member.voice.channel.join().then(connection => {
-        const stream = ytdl(song, { format: "audioonly" });
-        const nowPlaying = new Discord.MessageEmbed().setTitle("Now Playing").setDescription(`Now playing: [${queue[0][1]}](${queue[0][0]}) | Queue length: ${queue.length}`).setColor(0x1857a9);
-        dispatcher = connection.play(stream);
-        msg.channel.send(nowPlaying);
 
-        //Event 'finish' is run when the dispatcher finishes a song, so when it hits this, it will check queue length and play the next song.
-        dispatcher.on("finish", function() {
-          queue.shift();
-          if (queue.length >= 1) {
-            playMusic(queue[0][0]);
-          } else if (queue.length === 0) {
-            const endQueueMSG = new Discord.MessageEmbed().setTitle("End Of Queue").setDescription( "The queue has completed. Fembot will leave in 60 seconds. ~play [song] to keep going!").setColor(0x1857a9);
-            msg.channel.send(endQueueMSG);
-            setTimeout(function() {
-              if (queue.length === 0) {
-                dispatcher.destroy();
-                msg.member.voice.channel.leave();
-                return;
-              } else {
-                return;
-              }
-            }, 60000);
-          }
-        });
-      });
-    } else {
-      msg.reply("You must be in a voice channel to queue up music!");
-    }
-  }
-
-  //pauses the dispatcher
-  if (msg.content.startsWith(pref) && command === "pause") {
-    dispatcher.pause();
-    return;
-  }
   //skips current playing song and goes on to next (bugged rn)
   if (msg.content.startsWith(pref) && command === "skip") {
-    queue.shift();
-    if (queue.length > 1) {
-      playMusic(queue[0][0]);
-      return;
-    } else {
-      dispatcher.destroy();
-      const skipQueueMSG = new Discord.MessageEmbed().setTitle("End Of Queue").setDescription( "The queue has completed. Fembot will leave in 60 seconds. ~play [song] to keep going!").setColor(0x1857a9);
-      msg.channel.send(skipQueueMSG);
-      setTimeout(function() {
-        if (queue.length === 0) {
-          msg.member.voice.channel.leave();
-          return;
-        } else {
-          return;
-        }
-      }, 60000);
-      return;
-    }
+    mp.skip(queue, msg);
+    return;
   }
   //clears entire queue
   if(msg.content.startsWith(pref) && command === "clearqueue") {
     queue = [];
-    dispatcher.destroy();
     return;
   }
   //puts a song next in queue (still figuring this out)
@@ -172,6 +131,8 @@ client.on("message", async msg => {
   //trys the command, if working, executes, else it returns an error!
   try {
     client.commands.get(command).execute(msg, arg);
+    console.log(command);
+    command.export = command;
   } catch (error) {
     msg.reply("There was an error with that command!");
   }

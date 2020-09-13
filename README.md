@@ -1,13 +1,30 @@
-# DiscordBot
+# hello-express
 
-Discordbot Source Code
-Hello! If you are reading this, you are interested in the sourcecode for my discordbot! 
+A server that serves a webpage, its resources, and some data
 
-Let me just rundown where you will find all that you need to know!
 
-Commands: This folder includes individually coded commands that the bot can run on a server, each with their own purpose.
-Bot.js: this is the main file for the bot, this is where most of the main functionality occurs, including the youtube player.
+## Your Project
 
-In bot.js, at the bottom I have referenced some of the APIs I used in this project, and some of the websites I referenced for help.
+On the front-end,
 
-The goal in my discord bot is to just make a fun project for personal use, I have no hope in gaining anything but experience from this!
+- Edit `views/index.html` to change the content of the webpage
+- `public/client.js` is the javacript that runs when you load the webpage
+- `public/style.css` is the styles for `views/index.html`
+- Drag in `assets`, like images or music, to add them to your project
+
+On the back-end,
+
+- your app starts at `server.js`
+- add frameworks and packages in `package.json`
+- safely store app secrets in `.env` (nobody can see this but you and people you invite)
+
+Click `Show` in the header to see your app live. Updates to your code will instantly deploy.
+
+
+## Made by [Glitch](https://glitch.com/)
+
+**Glitch** is the friendly community where you'll build the app of your dreams. Glitch lets you instantly create, remix, edit, and host an app, bot or site, and you can invite collaborators or helpers to simultaneously edit code with you.
+
+Find out more [about Glitch](https://glitch.com/about).
+
+( ᵔ ᴥ ᵔ )

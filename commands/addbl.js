@@ -1,8 +1,8 @@
 const fs = require("fs");
 
 module.exports = {
-  name: "addbl",
-  description: "This command is used to add things to the server-blacklist",
+  command: "addbl",
+  use: "This command is used to add things to the server-blacklist",
   execute(msg, arg) {
     
     if(!msg.member.role.hasPermissions('Administrator')) {
